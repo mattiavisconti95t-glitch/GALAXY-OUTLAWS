@@ -71,6 +71,7 @@
 #status{top:66.3%!important;left:5%!important;right:5%!important;font-size:11px!important}
 #duelPanel{top:13%!important}
 @media (max-height:650px){#playBtn{font-size:9px!important;padding:4px 6px!important}}
+#duelOverlay{z-index:24!important;pointer-events:none!important}#duelPanel{pointer-events:none!important}#duelChoices{pointer-events:none!important}#handArea{z-index:35!important}#duelPanel{top:12%!important}#duelOverlay.show{display:flex!important}
 </style></head><body><div id="app"><section id="menu" class="screen active"><div id="cape"></div><button id="newBtn" class="hit" aria-label="Nuova partita"></button><button id="continueBtn" class="hit" aria-label="Continua"></button><button id="settingsBtn" class="hit" aria-label="Impostazioni"></button><div id="subMenu"><h2>QUANTI CACCIATORI?</h2><div><button data-n="2">2</button><button data-n="3">3</button><button data-n="4">4</button></div><button id="cancelMenu" class="uiBtn">ANNULLA</button></div><div id="hunterSelect"><h2>SCEGLI IL TUO CACCIATORE</h2><div id="hunterChoices"></div><button id="backToCount" class="uiBtn">INDIETRO</button></div></section><section id="board" class="screen"><div id="topHud"><button id="backMenu">☰</button><span id="round">TAGLIA 1/20</span><span id="score">0 ¢</span></div><div id="hunterHud"></div><div id="wantedHealth" class="health"></div><img id="wantedCard" alt="Ricercato"><div id="played"></div><div id="deckStack" aria-label="Mazzo Azioni"><img id="deckCard" src="./card-back.webp" alt="Mazzo Azioni"></div><div id="discardStack" aria-label="Pila degli scarti"><img id="discardCard" alt="Ultima carta scartata"></div><div id="status"></div><button id="playBtn" disabled>GIOCA COPERTA</button><div id="handArea"><div id="handTitle">LA TUA MANO</div><div id="handCards"></div></div><div id="effectLayer"></div><div id="toast"></div><div id="dealCard"><img></div></section><div id="settings"><div><h2>IMPOSTAZIONI</h2><label><input type="checkbox" id="animToggle" checked> Animazioni attive</label><p><button id="closeSettings" class="uiBtn">CHIUDI</button></p></div></div><div id="modal"><div id="modalBox"><h2 id="modalTitle"></h2><p id="modalText"></p><button id="modalButton" class="uiBtn">CONTINUA</button></div></div><div id="duelOverlay"><div id="duelPanel"><img id="duelLogo" src="./duel-logo.jpg" alt="DUELLO"><p id="duelInfo"></p><div id="duelChoices"></div><p style="font-size:11px;color:#f4bda3">La carta scelta viene scartata: non infligge danni e non cura.</p></div></div></div><script>
 let duelSelect=null;let duelShown=[];
 const hunters=['JAX','ZYRA','K-17','BRUGG'];const badgePath=name=>'./badge_'+name.toLowerCase().replaceAll('-','')+'.png';let chosenPlayerCount=2;const wantedData=[['KRAAG',700,1],['NIB',650,1],['SIXX',750,1],['ZERA',750,1],['VILT',800,1],['SKAR',650,1],['MURK',850,1],['KIP',950,1],['NOVA',750,1],['RAX',750,1],['KORV',800,1],['GRIMM',850,1],['SHARD',800,1],['BRAX',700,1],['GORR',800,1],['MARA',850,2],['THORN',800,2],['VEXA',900,2],['VEX',900,2],['OXX',900,2]];
@@ -141,7 +142,7 @@ async function chooseDuelCard(p){
 }
 async function resolveDuels(entries){
  const groups=new Map();
- for(const e of entries){if(e.card.type!=='attack')continue;const key=e.card.speed;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e)}
+ for(const e of entries){const key=e.card.type==='heal'?'heal-'+e.card.speed:'attack-'+e.card.speed;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e)}
  for(const [speed,group] of groups){
   if(group.length<2)continue;
   $('#duelOverlay').classList.add('show');$('#duelInfo').textContent='PARITÀ DI VELOCITÀ '+speed+' — DUELLO!';showDuelCards(group.map(e=>({e,card:null,speed:0})));status('DUELLO! VELOCITÀ '+speed);await wait(650);
@@ -158,7 +159,7 @@ async function resolveDuels(entries){
    }
    showDuelCards(results,false);$('#duelInfo').textContent='CARTE DEL DUELLO COPERTE';await wait(500);showDuelCards(results,true);$('#duelInfo').textContent='CARTE RIVELATE — '+results.map(x=>state.players[x.e.idx].name+' '+x.speed).join(' · ');for(const x of results){if(x.card)discardCard(x.card)}await wait(1100);
    const unique=[...new Set(results.map(x=>x.speed))].sort((a,b)=>b-a);
-   if(unique.length===1 && allEmpty && !state.deck.length && !state.discard.length){return tied}
+   if(unique.length===1 && allEmpty){return tied}
    const ordered=[];
    for(const v of unique){const subset=results.filter(x=>x.speed===v).map(x=>x.e);if(subset.length>1)ordered.push(...await rank(subset));else ordered.push(...subset)}
    return ordered;
